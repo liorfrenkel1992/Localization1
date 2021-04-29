@@ -1,0 +1,97 @@
+defaults:
+  - hydra/job_logging: colorlog
+  - hydra/hydra_logging: colorlog
+ 
+# Dataset
+data_path: /mnt/dsi_vol1/users/frenkel2/data/localization/Git/localization1/data/processed
+n_mics: 4  # Number of microphones
+input_std_normalize: False  # Choose whether to normalize the images with std or not
+frames_per_sample: 256
+K: 256
+frame_size: 256
+specFixedVar: 3
+ref_channel: 2
+deg_delta: 5
+
+# Logging and printing, and does not impact training
+gpu_device: 0
+device: cuda
+num_workers: 4
+verbose: 0
+
+# Checkpointing, by default automatically load last checkpoint
+checkpoint: True
+checkpoint_dir: /mnt/dsi_vol1/users/frenkel2/data/localization/Git/localization1/src/visualization/outputs
+checkpoint_file: 
+
+# Other stuff
+seed: 2036
+
+# Evaluation stuff
+pesq: false # compute pesq?
+eval_every: 10
+keep_last: 0
+
+# Optimization related
+optim: adam
+lr: 1e-07
+beta1: 0.9
+beta2: 0.999
+epochs: 150
+batch_size: 32 
+eps: 1e-07
+momentum: 0.9
+
+# learning rate scheduling
+lr_sched: step # can be either step or plateau
+step: 
+  step_size: 2
+  gamma: 0.98
+plateau:
+  factor: 0.5
+  patience: 5
+
+# Model
+n_classes: 38  # Number of DOA
+in_channels: 7  # The input size (real + imaginary + spec)
+val_percent: 10  # Precentage of val set from entire dataset
+net_fact: 1
+
+# Hydra config
+hydra:
+  run:
+    dir: /mnt/dsi_vol1/users/frenkel2/data/localization/Git/localization1/src/visualization/outputs/${hydra.job.override_dirname}
+  job:
+    config:
+      # configuration for the ${hydra.job.override_dirname} runtime variable
+      override_dirname:
+        kv_sep: '='
+        item_sep: ','
+        # Remove all paths, as the / in them would mess up things
+        # Remove params that would not impact the training itself
+        # Remove all slurm and submit params.
+        # This is ugly I know...
+        exclude_keys: [
+          'hydra.job_logging.handles.file.filename',
+          'dset.train', 'dset.valid', 'dset.test', 'dset.mix_json', 'dset.mix_dir',
+          'num_prints', 'continue_from',
+          'device', 'num_workers', 'print_freq', 'restart', 'verbose',
+          'log', 'ddp', 'ddp_backend', 'rendezvous_file', 'rank', 'world_size']
+  job_logging:
+    handlers:
+      file:
+        class: logging.FileHandler
+        mode: w
+        formatter: colorlog
+        filename: trainer.log
+      console:
+        class: logging.StreamHandler
+        formatter: colorlog
+        stream: ext://sys.stderr
+
+  hydra_logging:
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: colorlog
+        stream: ext://sys.stderr
