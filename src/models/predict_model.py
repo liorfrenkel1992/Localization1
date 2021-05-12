@@ -48,13 +48,24 @@ def parseArgs():
                         help='batch size of the imported model (default: 32)')
     parser.add_argument('--lr', type=float, dest='lr', default='0.0001',
                         help='learning rate of the imported model (default: 0.0001)')
-    parser.add_argument('--k', type=float, dest='K', default='512',
+    parser.add_argument('--k', type=int, dest='K', default='512',
                         help='STFT size (default: 512)')
-    parser.add_argument('--frame_size', type=float, dest='frame_size', default='256',
+    parser.add_argument('--frame_size', type=int, dest='frame_size', default='256',
                         help='frame size (default: 256)')
-    parser.add_argument('--n_classes', type=float, dest='n_classes', default='37',
+    parser.add_argument('--n_classes', type=int, dest='n_classes', default='37',
                         help='number of possible predicted DOA (default: 37)')
-    
+    parser.add_argument('--noise_phase', type=int, dest='noise_phase', default='270',
+                        help='chosen phase for noise (default: 270)')
+    parser.add_argument('--ref_channel', type=int, dest='ref_channel', default='2',
+                        help='reference channel of mics array (default: 2)')
+    parser.add_argument('--min_amp', type=int, dest='MIN_AMP', default='10000',
+                        help='minimum amplitude threshold for STFT (default: 10000)')
+    parser.add_argument('--amp_fac', type=int, dest='AMP_FAC', default='10000',
+                        help='amplitude factor for STFT (default: 10000)')
+    parser.add_argument('--threshold', type=int, dest='THRESHOLD', default='40',
+                        help='threshold for max amplitude for VAD (default: 40)')
+    parser.add_argument('--placements_apart', type=int, dest='placements_apart', default='4',
+                        help='minimum number of angles between speakers (default: 4)')
     return parser.parse_args()
 
 
@@ -146,14 +157,12 @@ def main(args):
     frame_size = args.frame_size
     n_class = args.n_classes
     plot = args.plot
-    noise_phase = 270
-    ref_channel = 2
-    MIN_AMP=10000
-    AMP_FAC=10000
-    THRESHOLD=40
-    specFixedVar_1ch = 3
-    specFixedVar_8ch = 1
-    num_of_placements_apart = 4
+    noise_phase = args.noise_phase
+    ref_channel = args.ref_channel
+    MIN_AMP = args.MIN_AMP
+    AMP_FAC = args.AMP_FAC
+    THRESHOLD = args.THRESHOLD
+    num_of_placements_apart = args.placements_apart
     
     # Set fft window properties
     K = args.K
@@ -175,12 +184,12 @@ def main(args):
     model_soumitro = model_from_json(loaded_model_json)
     model_soumitro.load_weights(os.path.join(soumitro_path, 'Weights_mul_CNN_paper.h5'))
     lrate = 0.001
-    adam = Adam(lr =lrate,beta_1=0.9,beta_2=0.999,epsilon=1e-08)
+    adam = Adam(lr =lrate, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
     model_soumitro.compile(loss='categorical_crossentropy', optimizer= adam)
     
     # Initialize models eval data
     models = [model_5deg_4mic_realRTF_imgRTF, model_soumitro]
-    model_names = ['model_5deg_4mic_realRTF_imgRTF','model_soumitro', 'SRP', 'MUSIC']
+    model_names = ['model_5deg_4mic_realRTF_imgRTF', 'model_soumitro', 'SRP', 'MUSIC']
 
     accuracy_by_batch = {model_names[0]:np.zeros((len(wav_list))),model_names[1]:np.zeros((len(wav_list))),model_names[2]:np.zeros((len(wav_list)))}
     accuracy_by_frame_1spk = {model_names[0]:np.zeros((len(wav_list))),model_names[1]:np.zeros((len(wav_list))),model_names[2]:np.zeros((len(wav_list)))}
@@ -188,7 +197,7 @@ def main(args):
     accuracy_by_frame_1spk_medfilt = {model_names[0]:np.zeros((len(wav_list))),model_names[1]:np.zeros((len(wav_list))),model_names[2]:np.zeros((len(wav_list)))}
     accuracy_by_frame_2spk_medfilt = {model_names[0]:np.zeros((len(wav_list))),model_names[1]:np.zeros((len(wav_list))),model_names[2]:np.zeros((len(wav_list)))}
 
-    count_spk = np.zeros((3,len(wav_list)))
+    count_spk = np.zeros((3, len(wav_list)))
 
     for wav_inx, wav_file in enumerate(wav_list):
 
