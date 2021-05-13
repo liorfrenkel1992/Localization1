@@ -33,14 +33,14 @@ def parseArgs():
     parser = argparse.ArgumentParser(description='Localization')
     parser.add_argument('--mode', type=str, default='test',
                         help='Mode, i.e., train, val or test (default: test)')
-    parser.add_argument('--s_path', type=str, default='/mnt/dsi_vol1/users/frenkel2/data/localization/results/new/eval_results',
-                        help='Speakers .wav files directory (default: /mnt/dsi_vol1/users/frenkel2/data/localization/results/new/eval_results)')
-    parser.add_argument('--csv_path', type=str, default='/mnt/dsi_vol1/users/frenkel2/data/localization/results/new/eval_results',
-                        help='csv directory (default: /mnt/dsi_vol1/users/frenkel2/data/localization/results/new/eval_results)')
+    parser.add_argument('--s_path', type=str, default='data/raw',
+                        help='Speakers .wav files directory (default: data/raw)')
+    parser.add_argument('--csv_path', type=str, default='data/raw',
+                        help='csv directory (default: data/raw)')
     parser.add_argument('--soumitro_path', type=str, default='/mnt/dsi_vol1/users/frenkel2/data/localization/hodaya/Single-speaker-localization',
                         help='soumitro model directory (default: /mnt/dsi_vol1/users/frenkel2/data/localization/hodaya/Single-speaker-localization)')
-    parser.add_argument('--checkpoints_path', type=str, default='/src/visualization/outputs', dest='ckpt_path',
-                        help='checkpoints directory (default: /src/visualization/outputs)')
+    parser.add_argument('--checkpoints_path', type=str, default='src/visualization/outputs', dest='ckpt_path',
+                        help='checkpoints directory (default: src/visualization/outputs)')
     parser.add_argument('-plot', action="store_true", dest='plot',
                         help='plot figures')
     parser.set_defaults(plot=True)
@@ -167,7 +167,7 @@ def main(args):
     # Set fft window properties
     K = args.K
     spec_size = int(K/2)
-    win_dir = '/src/data/synt_win_512.mat'
+    win_dir = 'src/data/synt_win_512.mat'
     mat_contents = sio.loadmat(win_dir)
     synt_win = mat_contents['synt_win']
 
