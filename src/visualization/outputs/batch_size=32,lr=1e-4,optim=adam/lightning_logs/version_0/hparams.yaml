@@ -1,0 +1,40 @@
+cfg:
+  data_path: /mnt/dsi_vol1/users/frenkel2/data/localization/Git/localization1/data/processed
+  n_mics: 4
+  input_std_normalize: false
+  frames_per_sample: 256
+  K: 256
+  frame_size: 256
+  specFixedVar: 3
+  ref_channel: 2
+  deg_delta: 5
+  gpu_device: 0
+  device: cuda
+  num_workers: 4
+  verbose: 0
+  checkpoint: true
+  checkpoint_dir: /mnt/dsi_vol1/users/frenkel2/data/localization/Git/localization1/src/visualization/outputs
+  checkpoint_file: null
+  seed: 2036
+  pesq: false
+  eval_every: 10
+  keep_last: 0
+  optim: adam
+  lr: 0.0001
+  beta1: 0.9
+  beta2: 0.999
+  epochs: 150
+  batch_size: 32
+  eps: 1.0e-07
+  momentum: 0.9
+  lr_sched: step
+  step:
+    step_size: 2
+    gamma: 0.98
+  plateau:
+    factor: 0.5
+    patience: 5
+  n_classes: 38
+  in_channels: 7
+  val_percent: 10
+  net_fact: 1

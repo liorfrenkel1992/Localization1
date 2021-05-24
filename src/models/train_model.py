@@ -51,7 +51,7 @@ def main(cfg: DictConfig) -> None:
     )
 
     trainer.fit(model, dm)
-    trainer.save_checkpoint(os.path.join(cfg.checkpoint_dir, 'unet_realRTF_imgRTF_spect_16Khz_4micsArray_bs_{0}_lr_{1}_Lior.ckpt'.format(cfg.batch_size, cfg.lr)))
+    trainer.save_checkpoint(os.path.join(cfg.checkpoint_dir, 'unet_realRTF_imgRTF_spect_16Khz_4micsArray_bs_{0}_lr_{1}_{2}_Lior.ckpt'.format(cfg.batch_size, cfg.lr, cfg.optim)))
     
 
 if __name__ == "__main__":

@@ -17,10 +17,12 @@ parser.add_argument('--processed_path', type=str, default='/mnt/dsi_vol1/users/f
                     help='Speakers .mat files directory (default: /mnt/dsi_vol1/users/frenkel2/data/localization/Git/localization1/data/processed)')
 parser.add_argument('--frames_per_sample', type=int, default=256, metavar='FPS',
                     help='Frames per sample (default: 256)')
-parser.add_argument('--spec_size', type=int, default=128, metavar='SPS',
-                    help='Size of spectrum (default: 128)')
+parser.add_argument('--spec_size', type=int, default=256, metavar='SPS',
+                    help='Size of spectrum (default: 256)')
 parser.add_argument('--frame_size', type=int, default=256, metavar='FS',
                     help='Size of frame (default: 256)')
+parser.add_argument('--spec_var', type=int, default=3, metavar='SV',
+                    help='Spectrum fixed variance for std normalization (default: 3)')
 parser.add_argument('--n_class', type=int, default=37, metavar='NC',
                     help='Number of possible angles (default: 37)')
 parser.add_argument('--n_mics', type=int, default=4, metavar='NM',
@@ -29,6 +31,8 @@ parser.add_argument('--ref_channel', type=int, default=2, metavar='RM',
                     help='Reference microphone (default: 2)')
 parser.add_argument('--eps', type=float, default=eps, metavar='EPS',
                     help='Size of eps for not dividing by zero / log a small number')
+parser.add_argument('-std_norm', action="store_true", dest='std_norm',
+                        help='Normalize input by std')
 args = parser.parse_args()
 
 
@@ -106,30 +110,38 @@ def preprocess(args):
         x_rtf = np.concatenate((x_rtf[:, :, :args.ref_channel], x_rtf[:, :, args.ref_channel + 1:]), axis=-1)
         x_rtf = x_rtf[:args.spec_size, :, :]
 
-        """
-        x_rtf_std = np.expand_dims(np.expand_dims(x_rtf.std(axis=(1, 2)), 1), -2)
-        x_rtf_std = np.tile(x_rtf_std, (1, spec_size, frame_size, 1))
-        x_rtf = x_rtf * ((np.sqrt(1) / (eps + x_rtf_std)))
-        """
+        if args.std_norm:
+            x_rtf_std = np.expand_dims(np.expand_dims(x_rtf.std(axis=(0, 1)), 0), 0)
+            x_rtf_std = np.tile(x_rtf_std, (args.spec_size, args.frame_size, 1))
+            #x_rtf_std = np.expand_dims(np.expand_dims(x_rtf.std(axis=(1, 2)), 1), -2)
+            #x_rtf_std = np.tile(x_rtf_std, (1, args.spec_size, args.frame_size, 1))
+            x_rtf = x_rtf * ((np.sqrt(1) / (eps + x_rtf_std)))
+        
         x_real = np.real(x_rtf)
         x_image = np.imag(x_rtf)
         
         del x_rtf
         gc.collect()
 
-        """
-        ## varaince 1 for every spectrogram
-        x_spec_std = np.expand_dims(np.expand_dims(x_spec.std(axis=(1, 2)), 1), -2)
-        x_spec_std = np.tile(x_spec_std, (1, spec_size, frame_size, 1))
-        x_spec = x_spec * ((np.sqrt(specFixedVar) / (eps + x_spec_std)))
-        del x_spec_std
-        """
+        if args.std_norm:
+            ## varaince 1 for every spectrogram
+            x_spec_std = np.expand_dims(np.expand_dims(x_spec.std(axis=(0, 1)), 0), 0)
+            x_spec_std = np.tile(x_spec_std, (args.spec_size, args.frame_size, 1))
+            #x_spec_std = np.expand_dims(np.expand_dims(x_spec.std(axis=(1, 2)), 1), -2)
+            #x_spec_std = np.tile(x_spec_std, (1, args.spec_size, args.frame_size, 1))
+            x_spec = x_spec * ((np.sqrt(args.specFixedVar) / (eps + x_spec_std)))
+            del x_spec_std
+        
 
         x = np.concatenate((x_real, x_image, x_spec), axis=-1)
         del x_real, x_image, x_spec
         gc.collect()
         
-        mat_path = '{0}/processed_{1}_{2}.mat'.format(args.processed_path, inx, n_speak)
+        if args.std_norm:
+            processed_path = args.processed_path + '\std_normalize'
+        else:
+            processed_path = args.processed_path
+        mat_path = '{0}/processed_{1}_{2}.mat'.format(processed_path, inx, n_speak)
         savemat(mat_path, {'x_train':x, 'y_train':y})
     
 

@@ -26,7 +26,8 @@ class BasicDataset(Dataset):
         self.frames_per_sample = cfg.frames_per_sample
         
         try:
-            self.ids = [s.split('.')[0] for s in os.listdir(self.data_path) if s.split('.')[1] == 'mat']
+            data_list = os.listdir(self.data_path)[:-1]
+            self.ids = [s.split('.')[0] for s in data_list if s.split('.')[1] == 'mat']
         except FileNotFoundError:
             self.ids = []
 

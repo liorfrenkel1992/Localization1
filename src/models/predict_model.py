@@ -46,8 +46,10 @@ def parseArgs():
     parser.set_defaults(plot=True)
     parser.add_argument('--bs', type=int, dest='batch_size', default=32,
                         help='batch size of the imported model (default: 32)')
-    parser.add_argument('--lr', type=float, dest='lr', default='0.0001',
-                        help='learning rate of the imported model (default: 0.0001)')
+    parser.add_argument('--lr', type=str, dest='lr', default='1e-05',
+                        help='learning rate of the imported model (default: 1e-05)')
+    parser.add_argument('--optim', type=str, dest='optim', default='adam',
+                        help='optimization method of the imported model (default: adam)')
     parser.add_argument('--k', type=int, dest='K', default='512',
                         help='STFT size (default: 512)')
     parser.add_argument('--frame_size', type=int, dest='frame_size', default='256',
@@ -121,7 +123,7 @@ def find_speaker(output, n_class):
     ar=np.zeros((n_class,))
     
     for i in range(n_class):
-        ar[i]=sum(sum((final_out==i)*1))
+        ar[i]=sum(sum((output==i)*1))
     
     return ar.argsort()[-3:-1]
 
@@ -163,6 +165,7 @@ def main(args):
     AMP_FAC = args.AMP_FAC
     THRESHOLD = args.THRESHOLD
     num_of_placements_apart = args.placements_apart
+    specFixedVar_1ch = 3
     
     # Set fft window properties
     K = args.K
@@ -173,7 +176,8 @@ def main(args):
 
     # Import our model
     model_main_dir = args.ckpt_path
-    model_name = 'unet_realRTF_imgRTF_spect_16Khz_4micsArray_bs_{0}_lr_{1}_Lior.ckpt'.format(args.batch_size, args.lr)
+    model_name = 'unet_realRTF_imgRTF_spect_16Khz_4micsArray_bs_{0}_lr_{1}_{2}_Lior.ckpt'.format(args.batch_size, args.lr, args.optim)
+    #model_name = 'unet_realRTF_imgRTF_spect_16Khz_4micsArray_bs_{0}_lr_{1}_Lior.ckpt'.format(args.batch_size, args.lr)
     model_5deg_4mic_realRTF_imgRTF = UNet.load_from_checkpoint(os.path.join(model_main_dir, model_name))
 
     # Import and compile soumitro model
@@ -201,6 +205,7 @@ def main(args):
 
     for wav_inx, wav_file in enumerate(wav_list):
 
+        wav_file = wav_list[45]  # Scenario with 2 speakers
         full_name = os.path.join(s_path, wav_file)
         print(full_name)  
         
@@ -229,7 +234,7 @@ def main(args):
                 true_label = (true_label/5).astype(int)  # Converting labels to range [0,37]
                 true_label = true_label[0:spec_size,:]
                 phases = np.unique(true_label)
-                phases_deg = (phases[1:]-1)*5  # Without noise label
+                phases_deg = (phases[:-1]-1)*5  # Without noise label
                 true_label_reshape_5deg = np.zeros((true_label.shape[0], true_label.shape[1], 37))
                 
                 for phase in range(phases.shape[0] - 1):
@@ -241,7 +246,7 @@ def main(args):
                     plt.savefig(os.path.join(args.s_path, 'True doa 5deg_'+str(wav_scenario) + '_model_'+model_name))
                     plt.close()
 
-                for flip in ['False']:
+                for flip in ['False', 'True']:
                     s = s[:,::-1]  # Flip mics
                     temp = stft(s[:, 1], nfft=K, overlap=0.75).T  # STFT to 2nd mic
                 
@@ -323,27 +328,31 @@ def main(args):
                     if plot:
                         plt.figure()
                         plt.imshow(o_doa_count.T, aspect='auto')
-                        plt.savefig(os.path.join('/mnt/dsi_vol1/users/frenkel2/data/localization/Git/localization1/reports/figures', 'argmax_count_' + str(wav_scenario) + '_model_' + model_name))
+                        plt.savefig(os.path.join('reports/figures', 'argmax_count_' + str(wav_scenario) + '_model_' + model_name))
                         plt.close()
                     
                     
+                    
                     doa = np.sum(o_reshape_with_vad, axis=0)
+                    #doa = np.sum(o_reshape_2, axis=0)
 
                     doa_final.append(doa)
                     o_final.append(o)
                     o_reshape_with_vad_final.append(o_reshape_with_vad)
+                    #o_reshape_with_vad_final.append(o_reshape_2)
 
-                """
+                
                 # Concat back the original and flipped predicion
                 o = np.concatenate((o_final[0][:, :, :, :19], o_final[1][:, :, :, -18:]), axis=-1)
                 o_reshape_with_vad_final = np.concatenate((o_reshape_with_vad_final[0][:, :, :19], o_reshape_with_vad_final[1][:, :, -18:]), axis=-1)
                 doa_final = np.concatenate((doa_final[0][:,:19],doa_final[1][:,-18:]),axis=-1)
-                """
                 
+                """
                 doa_final = doa_final[0]
                 o_final = o_final[0]
                 o_reshape_with_vad_final = o_reshape_with_vad_final[0]
-                
+                """
+                n_speakers
                             
                 if plot:
                     plt.figure()
@@ -387,9 +396,11 @@ def main(args):
                 two_peaks = spks.argsort()[-num_speakers:]
                 # Predicted speakers are at least 10 deg from each other
                 idx = 1
-                while (abs(two_peaks[0] - two_peaks[1]) < num_of_placements_apart - 1):
-                    two_peaks[1] = spks.argsort()[-2 - idx]
-                    idx = idx + 1
+                if len(two_peaks) == 2:
+                    while (abs(two_peaks[0] - two_peaks[1]) < num_of_placements_apart - 1):
+                        two_peaks[1] = spks.argsort()[-2 - idx]
+                        idx = idx + 1
+                
                 
 
             # Soumitro model 
@@ -434,7 +445,7 @@ def main(args):
                     spks[i] = doa_final[:, i].sum()
 
                 #two_peaks=spks.argsort()[-2:]
-                two_peaks = spks.argsort()[-n_speakers:]
+                two_peaks = spks.argsort()[-num_speakers:]
                 idx = 1
                 while (abs(two_peaks[0] - two_peaks[1]) < num_of_placements_apart - 1):
                     two_peaks = [spks.argsort()[-1], spks.argsort()[-2 - idx]]
@@ -442,17 +453,18 @@ def main(args):
             
             doa_final_norm = (doa_final - doa_final.min()) / (doa_final.max() - doa_final.min())
 
-            for idx_doa in range(doa_final_norm.shape[0]):
-                doa_final_argsort = np.argsort(doa_final_norm[idx_doa,:])
-                for idx in range(1,6):
-                    if ((abs(doa_final_argsort[-idx]-two_peaks[0])<num_of_placements_apart-1 or abs(doa_final_argsort[-idx]-two_peaks[1])<num_of_placements_apart-1) and (doa_final_norm[idx_doa,doa_final_argsort[-idx]]>0.1)):
-                        minidx = np.argmin([abs(doa_final_argsort[-idx]-two_peaks[0]),abs(doa_final_argsort[-idx]-two_peaks[1])])
-                        minidx = two_peaks[minidx]
-                        if (minidx != doa_final_argsort[-idx]):
-                            doa_final_norm[idx_doa,minidx] = doa_final_norm[idx_doa,minidx]+doa_final_norm[idx_doa,doa_final_argsort[-idx]]
+            if len(two_peaks) == 2:
+                for idx_doa in range(doa_final_norm.shape[0]):
+                    doa_final_argsort = np.argsort(doa_final_norm[idx_doa,:])
+                    for idx in range(1,6):
+                        if ((abs(doa_final_argsort[-idx]-two_peaks[0])<num_of_placements_apart-1 or abs(doa_final_argsort[-idx]-two_peaks[1])<num_of_placements_apart-1) and (doa_final_norm[idx_doa,doa_final_argsort[-idx]]>0.1)):
+                            minidx = np.argmin([abs(doa_final_argsort[-idx]-two_peaks[0]),abs(doa_final_argsort[-idx]-two_peaks[1])])
+                            minidx = two_peaks[minidx]
+                            if (minidx != doa_final_argsort[-idx]):
+                                doa_final_norm[idx_doa,minidx] = doa_final_norm[idx_doa,minidx]+doa_final_norm[idx_doa,doa_final_argsort[-idx]]
+                                doa_final_norm[idx_doa,doa_final_argsort[-idx]] = 0
+                        else:
                             doa_final_norm[idx_doa,doa_final_argsort[-idx]] = 0
-                    else:
-                        doa_final_norm[idx_doa,doa_final_argsort[-idx]] = 0
 
             doa_final_norm[doa_final_norm<0.03] = 0
             doa_final_norm = doa_final_norm/((np.tile(np.sum(doa_final_norm,axis=1),(doa_final_norm.shape[1],1))+eps).T)
