@@ -93,9 +93,9 @@ def preprocess(args):
         #y = y1.reshape(self.spec_size, self.frame_size, 1)
 
         for ii in range(args.n_class):
-            y[y1 == ii * 5] = ii + 1
+            y[y1 == ii * 5] = ii
 
-        y[y == 270] = 0
+        #y[y == 270] = 0
         
 
         # %% CREATE TRAINING DATA
