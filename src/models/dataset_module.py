@@ -30,6 +30,13 @@ class BasicDataset(Dataset):
             self.ids = [s.split('.')[0] for s in data_list if s.split('.')[1] == 'mat']
         except FileNotFoundError:
             self.ids = []
+            
+        self.training_data = []
+        for img in self.ids:
+            img_path = os.path.join(self.data_path, img)
+            mat = hdf5storage.loadmat(img_path)
+            x, y = mat['x_train'], mat['y_train']
+            self.training_data.append((x, y))
 
     def __len__(self):
         return len(self.ids)
@@ -128,11 +135,12 @@ class BasicDataset(Dataset):
         return x, y
         
     def __getitem__(self, i):
-        idx = self.ids[i]
-        img_path = os.path.join(self.data_path, idx)
-        mat = hdf5storage.loadmat(img_path)
-        x, y = mat['x_train'], mat['y_train']
+        #idx = self.ids[i]
+        #img_path = os.path.join(self.data_path, idx)
+        #mat = hdf5storage.loadmat(img_path)
+        #x, y = mat['x_train'], mat['y_train']
         #x, y = self.preprocess(mat)
+        x, y = self.training_data[i]
                 
         return torch.from_numpy(x.transpose((2, 0, 1))).type(torch.FloatTensor), torch.from_numpy(y).type(torch.LongTensor)
         #return x, y
