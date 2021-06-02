@@ -1,6 +1,6 @@
 data_path: /mnt/dsi_vol1/users/frenkel2/data/localization/Git/localization1/data/processed
 n_mics: 4
-input_std_normalize: false
+input_std_normalize: true
 frames_per_sample: 256
 K: 256
 frame_size: 256

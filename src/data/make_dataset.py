@@ -103,42 +103,46 @@ def preprocess(args):
         x = x + args.eps
         x_spec = np.log(args.eps + np.abs(x[0:args.spec_size, :, args.ref_channel]))
         
-        ### Make log values in range [-1,1]
-        x_spec = ((x_spec - x_spec.min()) / (x_spec.max() - x_spec.min())) * 2 - 1
-        x_spec = np.expand_dims(x_spec, 2)
         x_rtf = x / np.expand_dims(x[:, :, args.ref_channel], 2)
         x_rtf = np.concatenate((x_rtf[:, :, :args.ref_channel], x_rtf[:, :, args.ref_channel + 1:]), axis=-1)
         x_rtf = x_rtf[:args.spec_size, :, :]
 
         if args.std_norm:
-            x_rtf_std = np.expand_dims(np.expand_dims(x_rtf.std(axis=(0, 1)), 0), 0)
-            x_rtf_std = np.tile(x_rtf_std, (args.spec_size, args.frame_size, 1))
-            #x_rtf_std = np.expand_dims(np.expand_dims(x_rtf.std(axis=(1, 2)), 1), -2)
-            #x_rtf_std = np.tile(x_rtf_std, (1, args.spec_size, args.frame_size, 1))
+            # x_rtf_std = np.expand_dims(np.expand_dims(x_rtf.std(axis=(0, 1)), 0), 0)
+            # x_rtf_std = np.tile(x_rtf_std, (args.spec_size, args.frame_size, 1))
+            x_rtf_std = x_rtf.std(axis=(0, 1))[args.ref_channel - 1]  # Divide all by 1 mic std
             x_rtf = x_rtf * ((np.sqrt(1) / (eps + x_rtf_std)))
         
         x_real = np.real(x_rtf)
         x_image = np.imag(x_rtf)
+        
+        ### Make rtf values in range [0,1]
+        x_real = (x_real - x_real.min()) / (x_real.max() - x_real.min())
+        x_image = (x_image - x_image.min()) / (x_image.max() - x_image.min())
         
         del x_rtf
         gc.collect()
 
         if args.std_norm:
             ## varaince 1 for every spectrogram
-            x_spec_std = np.expand_dims(np.expand_dims(x_spec.std(axis=(0, 1)), 0), 0)
-            x_spec_std = np.tile(x_spec_std, (args.spec_size, args.frame_size, 1))
-            #x_spec_std = np.expand_dims(np.expand_dims(x_spec.std(axis=(1, 2)), 1), -2)
-            #x_spec_std = np.tile(x_spec_std, (1, args.spec_size, args.frame_size, 1))
-            x_spec = x_spec * ((np.sqrt(args.specFixedVar) / (eps + x_spec_std)))
+            # x_spec_std = np.expand_dims(np.expand_dims(x_spec.std(axis=(0, 1)), 0), 0)
+            # x_spec_std = np.tile(x_spec_std, (args.spec_size, args.frame_size, 1))
+            x_spec_std = x_spec.std(axis=(0, 1))  # Divide all by 1 mic std
+            x_spec = x_spec * ((np.sqrt(args.spec_var) / (eps + x_spec_std)))
             del x_spec_std
+            
+        ### Make log values in range [-1,1]
+        # x_spec = ((x_spec - x_spec.min()) / (x_spec.max() - x_spec.min())) * 2 - 1
+        ### Make log values in range [0,1]
+        x_spec = (x_spec - x_spec.min()) / (x_spec.max() - x_spec.min())
+        x_spec = np.expand_dims(x_spec, 2)
         
-
         x = np.concatenate((x_real, x_image, x_spec), axis=-1)
         del x_real, x_image, x_spec
         gc.collect()
         
         if args.std_norm:
-            processed_path = args.processed_path + '\std_normalize'
+            processed_path = args.processed_path + '/std_normalize'
         else:
             processed_path = args.processed_path
         mat_path = '{0}/processed_{1}_{2}.mat'.format(processed_path, inx, n_speak)

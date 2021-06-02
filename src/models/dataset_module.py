@@ -4,6 +4,7 @@ import gc
 
 import numpy as np
 import hdf5storage
+import matplotlib.pyplot as plt
 
 import torch
 import pytorch_lightning as pl
@@ -25,6 +26,9 @@ class BasicDataset(Dataset):
         self.ref_channel = cfg.ref_channel
         self.frames_per_sample = cfg.frames_per_sample
         
+        if cfg.input_std_normalize:
+            self.data_path = self.data_path + '/std_normalize'
+        
         try:
             data_list = os.listdir(self.data_path)[:-1]
             self.ids = [s.split('.')[0] for s in data_list if s.split('.')[1] == 'mat']
@@ -32,12 +36,19 @@ class BasicDataset(Dataset):
             self.ids = []
             
         self.training_data = []
+        doas = []
         for img in self.ids:
             img_path = os.path.join(self.data_path, img)
             mat = hdf5storage.loadmat(img_path)
             x, y = mat['x_train'], mat['y_train']
             self.training_data.append((x, y))
-
+            doas.append(y.flatten())
+        
+        plt.figure()
+        plt.hist(doas, bins=40)
+        plt.savefig('/mnt/dsi_vol1/users/frenkel2/data/localization/Git/localization1/reports/figures/doa_hist.png')
+        plt.close()
+        
     def __len__(self):
         return len(self.ids)
     

@@ -269,35 +269,45 @@ def main(args):
                         x_test[long - 1, :, 0:temp_stft.shape[1] - ((j * frame_size) + frame_size), i] = temp_stft[:, ((long-1)*frame_size):temp_stft.shape[1]]
                     
                     x_spec = np.log(eps + np.abs(x_test[:, 0:spec_size, :, ref_channel]))  # Convert spec to log values
-                
+
                     ### Make log values in range [-1,1]
-                    x_spec_min = np.expand_dims(np.expand_dims(x_spec.min(axis=(1,2)),1),-1)
-                    x_spec_min = np.tile(x_spec_min, (1,spec_size,frame_size))
-                    x_spec_max = np.expand_dims(np.expand_dims(x_spec.max(axis=(1,2)),1),-1)
-                    x_spec_max = np.tile(x_spec_max, (1,spec_size,frame_size))
-                    x_spec = ((x_spec-x_spec_min)/(x_spec_max-x_spec_min))*2-1
-                    del x_spec_max, x_spec_min
-                    x_spec = np.expand_dims(x_spec,3)
+                    # x_spec_min = np.expand_dims(np.expand_dims(x_spec.min(axis=(1,2)),1),-1)
+                    # x_spec_min = np.tile(x_spec_min, (1,spec_size,frame_size))
+                    # x_spec_max = np.expand_dims(np.expand_dims(x_spec.max(axis=(1,2)),1),-1)
+                    # x_spec_max = np.tile(x_spec_max, (1,spec_size,frame_size))
+                    # x_spec = ((x_spec-x_spec_min)/(x_spec_max-x_spec_min))*2-1
+                    # del x_spec_max, x_spec_min
+                    # x_spec = np.expand_dims(x_spec,3)
                     
-                    """
+                    
                     ## varaince 1 for every spectrogram
                     x_spec_std = np.expand_dims(np.expand_dims(x_spec.std(axis=(1,2)),1),-2)
-                    x_spec_std = np.tile(x_spec_std, (1,spec_size,frame_size,1))
+                    x_spec_std = np.tile(x_spec_std, (1,spec_size,frame_size))
+                    # x_spec_std = x_spec.std(axis=(1, 2))  # Divide all by 1 mic std
                     x_spec = x_spec*((np.sqrt(specFixedVar_1ch)/(eps+x_spec_std)))
                     del x_spec_std
-                    """
-
+                    
+                    ### Make log values in range [0,1]
+                    x_spec = (x_spec - x_spec.min()) / (x_spec.max() - x_spec.min())
+                    x_spec = np.expand_dims(x_spec, 3)
+                    
                     # RTF with 3rd mic
                     x_rtf = x_test / (np.expand_dims(x_test[:,:,:,ref_channel], 3) + eps)
                     x_rtf = np.concatenate((x_rtf[:,:,:,:ref_channel], x_rtf[:,:,:,ref_channel+1:]), axis=-1)
                     x_rtf = x_rtf[:, :spec_size, :, :]
-                    """
-                    x_rtf_std = np.expand_dims(np.expand_dims(x_rtf.std(axis=(1,2)),1),-2)
-                    x_rtf_std = np.tile(x_rtf_std, (1, spec_size, frame_size, 1))
-                    x_rtf = x_rtf * ((np.sqrt(1)/(eps + x_rtf_std)))  # Normalizing RTF with its std
-                    """
+                    
+                    # x_rtf_std = np.expand_dims(np.expand_dims(x_rtf.std(axis=(1,2)),1),-2)
+                    # x_rtf_std = np.tile(x_rtf_std, (1, spec_size, frame_size, 1))
+                    x_rtf_std = x_rtf.std(axis=(0, 1))[ref_channel - 1]  # Divide all by 1 mic std
+                    x_rtf = x_rtf * ((np.sqrt(1) / (eps + x_rtf_std)))  # Normalizing RTF with its std
+                    
                     x_real = np.real(x_rtf)
                     x_image = np.imag(x_rtf)
+                    
+                    ### Make rtf values in range [0,1]
+                    x_real = (x_real - x_real.min()) / (x_real.max() - x_real.min())
+                    x_image = (x_image - x_image.min()) / (x_image.max() - x_image.min())
+        
                     x_test_final=np.concatenate((x_real,x_image,x_spec),axis=-1)
 
                     # Predict with our model
