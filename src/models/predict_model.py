@@ -223,12 +223,14 @@ def main(args):
             model = models[ii]
             model_name = model_names[ii]
             s,fs = sf.read(full_name)
-            s = s/np.std(s)
+            # s = s/np.std(s)
             n_mics = s.shape[-1]
 
             if model_name == 'model_5deg_4mic_realRTF_imgRTF':
-                true_label = hdf5storage.loadmat(os.path.join(args.s_path, wav_name + '_trueLABEL.mat'))
-                true_label = true_label['label_mat']
+                # true_label = hdf5storage.loadmat(os.path.join(args.s_path, wav_name + '_trueLABEL.mat'))
+                # true_label = true_label['label_mat']
+                true_label = hdf5storage.loadmat(os.path.join(args.s_path, wav_name + '.mat'))
+                true_label = true_label['y_train']
                 true_label = np.where(true_label > 180, 360 - true_label, true_label)  # Converting to range [0,180]
                 true_label[true_label == -1] = noise_phase  # Noise label was defined as -1
                 true_label = (true_label/5).astype(int)  # Converting labels to range [0,37]
@@ -238,7 +240,7 @@ def main(args):
                 true_label_reshape_5deg = np.zeros((true_label.shape[0], true_label.shape[1], 37))
                 
                 for phase in range(phases.shape[0] - 1):
-                    true_label_reshape_5deg[:,:,int(phases[phase])][true_label== phases[phase]] = 1
+                    true_label_reshape_5deg[:,:,int(phases[phase])][true_label[:, :, ref_channel]== phases[phase]] = 1
                 true_doa_5deg = np.sum(true_label_reshape_5deg, axis=0)                
                 if plot:
                     plt.figure()
@@ -298,7 +300,7 @@ def main(args):
                     
                     # x_rtf_std = np.expand_dims(np.expand_dims(x_rtf.std(axis=(1,2)),1),-2)
                     # x_rtf_std = np.tile(x_rtf_std, (1, spec_size, frame_size, 1))
-                    x_rtf_std = x_rtf.std(axis=(0, 1))[ref_channel - 1]  # Divide all by 1 mic std
+                    x_rtf_std = x_rtf.std(axis=(0, 1))[ref_channel - 1]  # Divide all by 1st mic std
                     x_rtf = x_rtf * ((np.sqrt(1) / (eps + x_rtf_std)))  # Normalizing RTF with its std
                     
                     x_real = np.real(x_rtf)
