@@ -35,19 +35,23 @@ class BasicDataset(Dataset):
         except FileNotFoundError:
             self.ids = []
             
+        
         self.training_data = []
-        doas = []
+        # doas = []
         for img in self.ids:
             img_path = os.path.join(self.data_path, img)
             mat = hdf5storage.loadmat(img_path)
             x, y = mat['x_train'], mat['y_train']
             self.training_data.append((x, y))
-            doas.append(y.flatten())
+            # doas.append(y.flatten())
         
+        
+        """
         plt.figure()
         plt.hist(doas, bins=40)
         plt.savefig('/mnt/dsi_vol1/users/frenkel2/data/localization/Git/localization1/reports/figures/doa_hist.png')
         plt.close()
+        """
         
     def __len__(self):
         return len(self.ids)
@@ -146,10 +150,10 @@ class BasicDataset(Dataset):
         return x, y
         
     def __getitem__(self, i):
-        #idx = self.ids[i]
-        #img_path = os.path.join(self.data_path, idx)
-        #mat = hdf5storage.loadmat(img_path)
-        #x, y = mat['x_train'], mat['y_train']
+        # idx = self.ids[i]
+        # img_path = os.path.join(self.data_path, idx)
+        # mat = hdf5storage.loadmat(img_path)
+        # x, y = mat['x_train'], mat['y_train']
         #x, y = self.preprocess(mat)
         x, y = self.training_data[i]
                 
