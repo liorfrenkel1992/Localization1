@@ -52,7 +52,7 @@ plateau:
   patience: 5
 
 # Model
-n_classes: 38  # Number of DOA
+n_classes: 37  # Number of DOA
 in_channels: 7  # The input size (real + imaginary + spec)
 val_percent: 10  # Precentage of val set from entire dataset
 net_fact: 1
