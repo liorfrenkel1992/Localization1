@@ -107,20 +107,22 @@ def preprocess(args):
         x_rtf = np.concatenate((x_rtf[:, :, :args.ref_channel], x_rtf[:, :, args.ref_channel + 1:]), axis=-1)
         x_rtf = x_rtf[:args.spec_size, :, :]
 
-        """
-        if args.std_norm:
-            # x_rtf_std = np.expand_dims(np.expand_dims(x_rtf.std(axis=(0, 1)), 0), 0)
-            # x_rtf_std = np.tile(x_rtf_std, (args.spec_size, args.frame_size, 1))
-            x_rtf_std = x_rtf.std(axis=(0, 1))[args.ref_channel - 1]  # Divide all by 1 mic std
-            x_rtf = x_rtf * ((np.sqrt(1) / (eps + x_rtf_std)))
-            """
+        
+        # if args.std_norm:
+        #     # x_rtf_std = np.expand_dims(np.expand_dims(x_rtf.std(axis=(0, 1)), 0), 0)
+        #     # x_rtf_std = np.tile(x_rtf_std, (args.spec_size, args.frame_size, 1))
+        #     x_rtf_std = x_rtf.std(axis=(0, 1))[args.ref_channel - 1]  # Divide all by 1 mic std
+        #     x_rtf = x_rtf * ((np.sqrt(1) / (eps + x_rtf_std)))
+            
         
         x_real = np.real(x_rtf)
         x_image = np.imag(x_rtf)
         
         ### Make rtf values in range [0,1]
-        x_real = (x_real - x_real.min()) / (x_real.max() - x_real.min())
-        x_image = (x_image - x_image.min()) / (x_image.max() - x_image.min())
+        global_min = min(x_real.min(), x_image.min())
+        global_max = max(x_real.max(), x_image.max())
+        x_real = (x_real - global_min) / (global_max - global_min)
+        x_image = (x_image - global_min) / (global_max - global_min)
         
         del x_rtf
         gc.collect()
