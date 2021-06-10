@@ -21,7 +21,7 @@ import hydra
 from unet import UNet
 from dataset_module import LocalizationDataModule
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5"
+os.environ["CUDA_VISIBLE_DEVICES"] = "5"
 
 
 @hydra.main(config_name='train_cfg')

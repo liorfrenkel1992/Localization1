@@ -317,7 +317,7 @@ def main(args):
                     endd = startt + long
                     x_test_final = torch.from_numpy(x_test_final.transpose((0, 3, 1, 2))).type(torch.FloatTensor)
                     o = model(x_test_final[startt:endd, 0:spec_size, :, :])#.reshape((1,x.shape[1],96,8)))
-                    o = o[:, :-1, :, :]  # Ignore noise labels
+                    # o = o[:, :-1, :, :]  # Ignore noise labels
                     o = F.softmax(o, dim=1)
                     o = o.detach().numpy().transpose((0, 2, 3, 1))
                     

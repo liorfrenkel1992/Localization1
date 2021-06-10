@@ -150,10 +150,12 @@ class BasicDataset(Dataset):
         return x, y
         
     def __getitem__(self, i):
-        # idx = self.ids[i]
-        # img_path = os.path.join(self.data_path, idx)
-        # mat = hdf5storage.loadmat(img_path)
-        # x, y = mat['x_train'], mat['y_train']
+        """
+        idx = self.ids[i]
+        img_path = os.path.join(self.data_path, idx)
+        mat = hdf5storage.loadmat(img_path)
+        x, y = mat['x_train'], mat['y_train']
+        """
         #x, y = self.preprocess(mat)
         x, y = self.training_data[i]
                 
